@@ -122,12 +122,6 @@ function tick()
    play_note()
 end
 
-function stop_note(note, ch)
-   local abs_note = params:get('root')+cur_note
-   log("Stopping "..abs_note)
-   midi_dev:note_off(abs_note, 0, params:get('midi_ch'))
-end
-
 function play_note()
    local abs_note = params:get('root')+cur_note
    local abs_amp  = math.floor(127 / cur_amp)

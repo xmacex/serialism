@@ -44,7 +44,7 @@ end
 
 function init_params()
    params:add_number('midi_dev', "MIDI device", 1, 4, 1)
-   params:set_action('midi_dev', function(d) midi_dev = midi.connect_input(d) end)
+   params:set_action('midi_dev', function(d) midi_dev = midi.connect_output(d) log("MIDI dev now "..midi_dev.name) end)
    params:add_number('midi_ch', "MIDI channel", 1, 16, 1)
    params:add_number('root', "root note", 0, 127, 60)
    params:add_control('note_len', "note_len", controlspec.new(0.05, 1, 'lin', 0.01, 0.1, "sec"))
@@ -92,18 +92,23 @@ function redraw()
 end
 
 function draw_notes()
+   -- x_scale = WIDTH/#note_serie
+   x_scale = WIDTH/(78/12/2)    -- FIXME: why?
+   y_scale = HEIGHT/#note_serie
+   z_scale = 255/#amp_serie
    screen.color(255,255,0)
+   -- screen.move(0, HEIGHT/2)
+   screen.move(0, HEIGHT-params:get('root'))
    for i,v in ipairs(note_serie) do
-      local radius = WIDTH / (#note_serie) / math.pi*2
-      screen.move(i*WIDTH/(#note_serie - 1), HEIGHT - v*HEIGHT/(#note_serie))
+      screen.move_rel(1/div_serie[i]*x_scale, -v)
       if v == cur_note then
-         screen.circle_fill(radius)
-         screen.color(0,0,0)
-         screen.move_rel(1, -2) -- tuning
-         screen.text_center(cur_note)
+         screen.color(255,0,0,amp_serie[i]*z_scale)
       else
-         screen.circle(radius/2)
+         screen.color(255,255,0,amp_serie[i]*z_scale)
       end
+      if DEBUG then screen.text(v) end
+      screen.line_rel(-(1/div_serie[i])*x_scale, 0)
+      screen.move_rel(0, v)
    end
 end
 
@@ -135,8 +140,6 @@ function play_note()
             midi_dev:note_off(abs_note, 0, params:get('midi_ch'))
          end
       )
-   else
-      log("MIDI device is "..midi_dev)
    end
 end
 

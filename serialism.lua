@@ -129,7 +129,7 @@ end
 
 function play_note()
    local abs_note = params:get('root')+cur_note
-   local abs_amp  = math.floor(127 / cur_amp)
+   local abs_amp  = math.floor(cur_amp * 127 / #amp_serie)
    if midi_dev then
       midi_dev:note_on(abs_note, abs_amp, params:get('midi_ch'))
       -- note management routine from @dan_derks at

@@ -4,24 +4,33 @@
 --
 -- Needs an edit mode, for now rando+operations.
 --
--- by xmacex on a rainy Monday
+-- by xmacex for norns a rainy Tuesday
 
 DEBUG = true
 
-WIDTH = 128*2
-HEIGHT = 64*2
+local WIDTH = 128
+local HEIGHT = 64
 
-sequins = require 'sequins'
-lattice = require 'lattice'
+local sequins = require 'sequins'
+local lattice = require 'lattice'
 
-cur_note = nil
 midi_dev = nil
+
+note_serie = nil
+local cur_note = nil
+div_serie = nil
+cur_div = nil
+amp_serie = nil
+cur_amp = nil
+lat = nil
+sprocket = nil
 
 function init()
    init_params()
-   midi_dev = midi.connect_output(params:get('midi_dev'), 1)
+   midi_dev = midi.connect(params:get('midi_dev'), 1)
 
    note_serie    = sequins{1,2,3,4,5,6,7,8,9,10,11,12}
+   -- note_serie = sequins{9,0,9,11} -- acab
    cur_note      = note_serie()
    -- div_serie     = sequins{1/1,1/2,1/3,1/4,1/5,1/6,1/7,1/8,1/9,1/10,1/11,1/12}
    div_serie     = sequins{1,2,3,4,5,6,7,8,9,10,11,12}
@@ -37,14 +46,19 @@ function init()
    }
    sprocket:start()
 
-   -- UI metro
-   ui_metro = metro.init(redraw, 0.1)
-   ui_metro:start()
+   -- I still don't know what is the norns redraw pattern...
+   clock.run(
+      function()
+         while true do
+            clock.sleep(1/12)
+            redraw()
+         end
+   end)
 end
 
 function init_params()
    params:add_number('midi_dev', "MIDI device", 1, 4, 1)
-   params:set_action('midi_dev', function(d) midi_dev = midi.connect_output(d) log("MIDI dev now "..midi_dev.name) end)
+   params:set_action('midi_dev', function(d) midi_dev = midi.connect(d) log("MIDI dev now "..midi_dev.name) end)
    params:add_number('midi_ch', "MIDI channel", 1, 16, 1)
    params:add_number('root', "root note", 0, 127, 60)
    params:add_control('note_len', "note_len", controlspec.new(0.05, 1, 'lin', 0.01, 0.1, "sec"))
@@ -60,55 +74,57 @@ function init_params()
 
    params:add_separator("randozone", "randozone")
    params:add_trigger('shuffle_notes', "shuffle notes")
-   params:set_action('shuffle_notes', function(d) shuffle_sequins(note_serie) end)
+   params:set_action('shuffle_notes', function() shuffle_sequins(note_serie) end)
    params:add_trigger('shuffle_amps', "shuffle amps")
-   params:set_action('shuffle_amps', function(d) shuffle_sequins(amp_serie) end)
+   params:set_action('shuffle_amps', function() shuffle_sequins(amp_serie) end)
    params:add_trigger('shuffle_divs', "shuffle divs")
-   params:set_action('shuffle_divs', function(d) shuffle_sequins(div_serie) end)
+   params:set_action('shuffle_divs', function() shuffle_sequins(div_serie) end)
 
    params:add_separator("R", "reversezone")
    params:add_trigger('reverse_notes', "reverse notes")
-   params:set_action('reverse_notes', function(d) reverse_sequins(note_serie) end)
+   params:set_action('reverse_notes', function() reverse_sequins(note_serie) end)
    params:add_trigger('reverse_amps', "reverse amps")
-   params:set_action('reverse_amps', function(d) reverse_sequins(amp_serie) end)
+   params:set_action('reverse_amps', function() reverse_sequins(amp_serie) end)
    params:add_trigger('reverse_divs', "reverse divs")
-   params:set_action('reverse_divs', function(d) reverse_sequins(div_serie) end)
+   params:set_action('reverse_divs', function() reverse_sequins(div_serie) end)
 
    params:add_separator("I", "flipzone")
    params:add_trigger('invert_notes', "invert notes")
-   params:set_action('invert_notes', function(d) invert_sequins(note_serie) end)
+   params:set_action('invert_notes', function() invert_sequins(note_serie) end)
    params:add_trigger('invert_amps', "invert amps")
-   params:set_action('invert_amps', function(d) invert_sequins(amp_serie) end)
+   params:set_action('invert_amps', function() invert_sequins(amp_serie) end)
    params:add_trigger('invert_divs', "invert divs")
-   params:set_action('invert_divs', function(d) invert_sequins(div_serie) end)
+   params:set_action('invert_divs', function() invert_sequins(div_serie) end)
 end
 
 function redraw()
-   -- log("Refreshing screen")
    screen.clear()
-   draw_notes()
-   screen.color(255,255,0,255)
-   screen.refresh()
+   draw_serie()
+   screen.update()
 end
 
-function draw_notes()
-   -- x_scale = WIDTH/#note_serie
-   x_scale = WIDTH/(78/12/2)    -- FIXME: why?
-   y_scale = HEIGHT/#note_serie
-   z_scale = 255/#amp_serie
-   screen.color(255,255,0)
-   -- screen.move(0, HEIGHT/2)
-   screen.move(0, HEIGHT-params:get('root'))
+function draw_serie()
+   local x_scale = WIDTH/#note_serie -- 78 is a number too
+   local y_scale = #note_serie/HEIGHT*2
+   screen.level(3)
+   screen.move(0, HEIGHT-params:get('root')*y_scale*2)
    for i,v in ipairs(note_serie) do
-      screen.move_rel(1/div_serie[i]*x_scale, -v)
+      -- screen.move_rel(-1+div_serie[i], -v)
+      -- local x=(i-1)*x_scale
+      local x=i*x_scale
+      local y=HEIGHT-(params:get('root')+v)*y_scale
+      local l=#div_serie-div_serie[i]+1
+      screen.move(x, y)
       if v == cur_note then
-         screen.color(255,0,0,amp_serie[i]*z_scale)
+	 screen.level(10)
       else
-         screen.color(255,255,0,amp_serie[i]*z_scale)
+	 screen.level(2)
       end
-      if DEBUG then screen.text(v) end
-      screen.line_rel(-(1/div_serie[i])*x_scale, 0)
-      screen.move_rel(0, v)
+      screen.line(x-l, y)
+      screen.stroke()
+      if DEBUG then screen.font_face(#note_serie) screen.text(v) end
+      -- screen.line_rel(-(1/div_serie[i])*x_scale, y_scale)
+      -- screen.move_rel(0, v)
    end
 end
 
@@ -140,6 +156,20 @@ function play_note()
             midi_dev:note_off(abs_note, 0, params:get('midi_ch'))
          end
       )
+   end
+end
+
+function enc(n, d)
+   if n==2 then
+      params:delta('root', d)
+   end
+end
+
+function key(k, z)
+   if k==2 and z==1 then
+      shuffle_sequins(note_serie)
+   elseif k==3 and z==1 then
+      shuffle_sequins(div_serie)
    end
 end
 

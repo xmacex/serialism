@@ -68,7 +68,7 @@ function init_params()
    params:add_number('midi_ch', "MIDI channel", 1, 16, 1)
    params:add_number('root', "root note", 0, 127-#TWELVE, 60)
    params:add_control('note_len', "note length", controlspec.new(0.05, 1, 'lin', 0.01, 0.1, "sec"))
-   params:add_number('speedup', "faster faster", 1, 8, 1)
+   params:add_number('speedup', "faster faster", 1, #TWELVE, 1)
 
    -- serializations
    params:add_separator('serializations', "serializations")

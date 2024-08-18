@@ -1,18 +1,23 @@
 # serialism
 
-I'm reading Karlheinz Stockhausen's *How Time Passes By* (1957) in Die
-Reihe. So I made this for [seamstress](https://llllllll.co/t/seamstress-v0-14-3/62356).
+I was reading Karlheinz Stockhausen's *How Time Passes By* (1957) in Die
+Reihe. So I made this.
 
 ![](a-serialism.mp3)
 
+## Instuctions
+
+The idea is that each note, clock division, and amplitude is used once per bar. Silly constrain but oh well let's explore it.
+
+- K2 shuffle notes
+- K3 shuffle divisions
+- E2 transpose ↑/↓
+
 ## Requirements
 
-- seamstress
+- norns
 - MIDI device for output
 
 ## Roadmap
 
-- [ ] Move to norns
-- [ ] Edit mode somehow
-- [ ] Serialize note lengths
-- [ ] Maybe gamepad HID input; somebody gave me one today
+- [ ] Maybe gamepad HID composing? Somebody gave me one the other day.

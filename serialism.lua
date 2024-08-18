@@ -184,11 +184,9 @@ function draw_serie()
    end
 end
 
---- Sequins management and utilities.
--- Fisher Yates shuffle by Sneitnick
-
-
--- https://gist.github.com/Uradamus/10323382?permalink_comment_id=2754684#gistcomment-2754684
+-- Sequins management and utilities.
+--- Fisher Yates shuffle by Sneitnick
+--- https://gist.github.com/Uradamus/10323382?permalink_comment_id=2754684#gistcomment-2754684
 function shuffle(tbl)
   for i = #tbl, 2, -1 do
     local j = math.random(i)

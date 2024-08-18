@@ -1,5 +1,5 @@
 -- I was reading Stockhausen's
---   How Time Passes By (1957)
+--   How Time Passes (1957)
 -- thinking about serialism.
 -- Also youtu.be/8sm3o-2cfIQ
 --

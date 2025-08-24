@@ -177,6 +177,26 @@ function key(k, z)
     end
     end
 
+function gamepad.dpad(axis, sign)
+    if axis=='X' then
+        enc(2, sign)
+    elseif axis=='Y' then
+        enc(3, sign)
+    end
+end
+
+function gamepad.button(button_name, state)
+    if button_name=='SELECT' and state==1 then
+        enc(1, 1)
+    elseif button_name=='A' then
+        key(2, state)
+    elseif button_name=='B' then
+        key(3, state)
+    elseif button_name=='START' then
+        key(1, state)
+    end
+end
+
      --- Screen
      function redraw()
          screen.clear()

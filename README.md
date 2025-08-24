@@ -17,13 +17,16 @@ The idea is that each note, clock division, and amplitude is used once per bar. 
 - <kbd>K1+K2</kbd> reverse the serie
 - <kbd>K1+K3</kbd> invert the serie
 
+Gamepad <kbd>select</kbd> selects a serie, d-pad <kbd>←</kbd>/<kbd>→</kbd> and <kbd>↓</kbd>/<kbd>↑</kbd> selects items, <kbd>A</kbd> swaps and shuffles, and <kbd>start</kbd> is a shift for reverse and invert as with norns keys.
+
 ## Requirements
 
 - norns
 - MIDI device for output
+- gamepad optional
 
 ## Roadmap
 
-- [ ] Maybe gamepad HID composing? Somebody gave me one the other day.
+- [x] Maybe gamepad HID composing? Somebody gave me one the other day.
 - [ ] Seems like just the thing for n.b.
 - [ ] crow interface

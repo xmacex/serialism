@@ -2,32 +2,41 @@
 --  How Time Passes (1957)
 --   thinking about serialism.
 --    Also youtu.be/8sm3o-2cfIQ
---     K2 shuffle notes
---      K3 shuffle divisions
---       E2 transpose ↑/↓
---        Shuffing, reversing,
---         inverting in
---          the menus.
---           by xmacex
---            on a rainy day
-
-DEBUG = false
+--     E1 select a serie
+--      E2 select one item
+--       E3 and the other one
+--        K2 then swap them
+--         K3 and shuffle serie
+--          K1+K2 and reverse it
+--           K1+K3 and invert it
+--            by xmacex
 
 sequins = require 'sequins'
-lattice = require 'lattice'
+ lattice = require 'lattice'
+  TWELVE = {1,2,3,4,5,6,7,8,9,10,11,12}
+   WIDTH = 128
+    HEIGHT = 64
+     X_SCALE = 0
+      Y_SCALE = 0
+       midi_dev = nil
+        sel_serie = 1
+         sel_first = 1
+          sel_second = #TWELVE
+           shift = 0
+ 
+lat = nil
+ sprocket = nil
+  note_serie= {}
+   cur_note = nil
+    div_serie = {}
+     cur_div = nil
+      amp_serie = {}
+       cur_amp = nil
+        series = {}
+         SERIE_NAMES = {"note",
+          "div",
+           "amp"}
 
-TWELVE    = {1,2,3,4,5,6,7,8,9,10,11,12}
- WIDTH     = 128
-  HEIGHT    = 64
-   midi_dev  = nil
-    lat       = nil
-     sprocket  = nil
-      note_serie= nil
-       cur_note  = nil
-        div_serie = nil
-         cur_div   = nil
-          amp_serie = nil
-           cur_amp   = nil
 
 function init()
 --- Params
@@ -35,7 +44,7 @@ function init()
 params:add_number('midi_dev', "MIDI device", 1, 4, 1, function(p) local midi_dev = midi.connect(p.value) return p.value..": "..midi_dev.name end)
 params:set_action('midi_dev', function(d) midi_dev = midi.connect(d) log("MIDI dev now "..midi_dev.name) end)
 params:add_number('midi_ch', "MIDI channel", 1, 16, 1)
-params:add_number('root', "root note", 0, 127-#TWELVE, 60)
+params:add_number('root', "root note", 0, 127-#TWELVE, #TWELVE*5)
 params:add_control('note_len', "note length", controlspec.new(0.05, 1, 'lin', 0.01, 0.1, "sec"))
 params:add_number('speedup', "faster faster", 1, #TWELVE, 1)
 
@@ -75,18 +84,23 @@ params:set_action('invert_divs', function() invert_sequins(div_serie) end)
 --- Other initialization
 midi_dev = midi.connect(params:get('midi_dev'), 1)
 
-note_serie = sequins(TWELVE)
+note_serie = sequins(tab.gather(TWELVE, {}))
 cur_note   = note_serie()
-div_serie  = sequins(TWELVE)
+div_serie  = sequins(tab.gather(TWELVE, {}))
 cur_div    = 1 / div_serie()
-amp_serie  = sequins(TWELVE)
+amp_serie  = sequins(tab.gather(TWELVE, {}))
 cur_amp    = amp_serie()
+
+series     = {note_serie, div_serie, amp_serie}
 
 lat        = lattice:new{}
 lat:start()
 
 sprocket   = lat:new_sprocket{action = tick}
 sprocket:start()
+
+X_SCALE = WIDTH/#note_serie -- 78 is a number too
+Y_SCALE = #note_serie/HEIGHT*2
 
 -- Let's do this kind of redraw pattern this time :)
 clock.run(
@@ -132,51 +146,109 @@ end
 
    -- User interface.
    --- User input
-   function enc(n, d)
-   if n==2 then
-   params:delta('root', d)
-   end
-   end
+function enc(n, d)
+    if n==1 then
+        sel_serie = util.wrap(sel_serie+d, 1, #series)
+    elseif n==2 then
+        sel_first=util.wrap(sel_first+d, 1, #TWELVE)
+        if sel_first == sel_second then sel_first=sel_first+d end
+    elseif n==3 then
+        sel_second=util.wrap(sel_second+d, 1, #TWELVE)
+        if sel_second == sel_first then sel_second=sel_second+d end
+    end
+end
 
-    function key(k, z)
+function key(k, z)
+    if k==1 then
+        shift=z
+    end
     if k==2 and z==1 then
-    shuffle_sequins(note_serie)
+        if shift==1 then
+            reverse_sequins(series[sel_serie])
+        else
+            swap(series[sel_serie], sel_first, sel_second)
+        end
     elseif k==3 and z==1 then
-    shuffle_sequins(div_serie)
+        if shift==1 then
+            invert_sequins(series[sel_serie])
+        else
+            shuffle_sequins(series[sel_serie])
+        end
     end
     end
 
      --- Screen
      function redraw()
-     screen.clear()
-     local x_scale = WIDTH/#note_serie -- 78 is a number too
-     local y_scale = #note_serie/HEIGHT*2
-     screen.level(3)
-     screen.move(0, HEIGHT-params:get('root')*y_scale*2)
-     for i,v in ipairs(note_serie) do
-     -- screen.move_rel(-1+div_serie[i], -v)
-     -- local x=(i-1)*x_scale
-     local x=i*x_scale
-     local y=HEIGHT-(params:get('root')+v)*y_scale
-     local l=#div_serie-div_serie[i]+1
-     screen.move(x, y)
-     if v == cur_note then
-        screen.level(10)
-     else
-        screen.level(2)
-     end
-     screen.line(x-l, y)
-     screen.stroke()
-     if DEBUG then screen.font_face(#note_serie) screen.text(v) end
-     -- screen.line_rel(-(1/div_serie[i])*x_scale, y_scale)
-     -- screen.move_rel(0, v)
-     end
+         screen.clear()
+
+         redraw_selectors(sel_first, sel_second)
+         redraw_serie_name(SERIE_NAMES[sel_serie])
+         redraw_serialism()
      screen.update()
      end
 
+function redraw_selectors(i1, i2)
+    local x1 = i1*X_SCALE
+    local y1 = HEIGHT-(params:get('root')+note_serie.data[i1])*Y_SCALE
+    local l1 = #div_serie-div_serie[i1]
+
+    screen.level(1)
+
+    screen.move(0, 1)
+    screen.line(x1-l1, y1)
+    screen.line(x1, y1)
+    screen.line(WIDTH, 1)
+    screen.fill()
+
+    local x2 = i2*X_SCALE
+    local y2 = HEIGHT-(params:get('root')+note_serie.data[i2])*Y_SCALE
+    local l2 = #div_serie-div_serie[i2]
+    screen.move(1, HEIGHT)
+    screen.line(x2-l2, y2)
+    screen.line(x2, y2)
+    screen.line(WIDTH, HEIGHT)
+    screen.fill()
+end
+
+function redraw_serie_name(name)
+    screen.font_face(#TWELVE)
+    screen.font_size(#TWELVE)
+    screen.level(#TWELVE)
+
+    screen.move(#TWELVE+shift, #TWELVE)
+    screen.text_center(name)
+
+    screen.move(WIDTH-#TWELVE-shift, HEIGHT-#TWELVE)
+    screen.text_center(name)
+end
+
+function redraw_serialism()
+    screen.level(3)
+    screen.move(0, HEIGHT-params:get('root')*Y_SCALE*2)
+    for i,v in ipairs(note_serie) do
+        local x=i*X_SCALE
+        local y=HEIGHT-(params:get('root')+v)*Y_SCALE
+        local l=#div_serie-div_serie[i]+1
+        screen.move(x, y)
+        if v == cur_note then
+            screen.level(16)
+        else
+            screen.level(amp_serie.data[v])
+        end
+        screen.line(x-l, y)
+        screen.stroke()
+    end
+end
+
       -- Sequins management and utilities.
+function swap(serie, i1, i2)
+    local t1 = serie.data[i1]
+    serie.data[i1] = serie.data[i2]
+    serie.data[i2] = t1
+end
       --- Fisher Yates shuffle by Sneitnick
       --- https://gist.github.com/Uradamus/10323382?permalink_comment_id=2754684#gistcomment-2754684
+
       function shuffle(tbl)
       for i = #tbl, 2, -1 do
       local j = math.random(i)
